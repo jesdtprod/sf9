@@ -169,13 +169,17 @@
     const sum = k => { const v = months.map(m => m[k]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
     const terms = model.mode === 'terms' ? (() => {
       const rows = model.termSheets.map(sheet => find(sheet, st));
+      const finalHeaders = model.termSheets[3].headers;
+      const finalAverageCol = finalHeaders.findIndex(header => /^(general\s+)?average$/i.test(norm(header)));
+      const finalRemarkCol = finalHeaders.findIndex(header => /^remarks?$/i.test(norm(header)));
       const subjects = model.subjects.map(subject => {
         const grades = rows.map(row => { const n = row ? num(row[subject.col]) : null; return n === 0 ? null : n; });
         const final = grades[3];
         return { name: subject.name, grades: grades.slice(0, 3), final, remark: final == null ? '' : (final > 74.4 ? 'PASSED' : 'FAILED') };
       });
-      const averages = rows.map(row => { const n = row && model.averageCol >= 0 ? num(row[model.averageCol]) : null; return n === 0 ? null : n; });
-      return { subjects, averages, remark: averages[3] == null ? '' : (averages[3] > 74.4 ? 'PASSED' : 'FAILED') };
+      const averages = rows.map((row, i) => { const col = i === 3 ? finalAverageCol : model.averageCol; const n = row && col >= 0 ? num(row[col]) : null; return n === 0 ? null : n; });
+      const finalRemark = finalRemarkCol >= 0 ? (rows[3] ? norm(rows[3][finalRemarkCol]) : '') : (averages[3] == null ? '' : (averages[3] > 74.4 ? 'PASSED' : 'FAILED'));
+      return { subjects, averages, remark: finalRemark };
     })() : null;
     return {
       mode: model.mode, terms, adviser: model.adviser, principal: model.principal,
